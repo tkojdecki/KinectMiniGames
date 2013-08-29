@@ -131,6 +131,23 @@ namespace ApplesGame
                     myApple[i, j] = new Apple(50, (int)(tree[i].Width) - 80,
                         80, (int)(tree[i].Height) - 400);
                     tree[i].Children.Add(myApple[i, j].Figure);
+                    
+                                        //add button
+                    var button = new KinectCircleButton
+                    {
+                        Height = myApple[i, j].Figure.Height,
+                        Width = myApple[i, j].Figure.Width,
+                        Margin = myApple[i, j].Figure.Margin,
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        Content = i,
+                        //Visibility=Visibility.Hidden
+                    };
+                    KinectRegion.SetIsGripTarget(button, true);
+                    KinectRegion.AddQueryInteractionStatusHandler(button, OnQuery);
+                    KinectRegion.AddHandPointerGripHandler(button, OnHandPointerGrip);
+                    
+                    tree[i].Children.Add(button);
+
                 }
             }
 
