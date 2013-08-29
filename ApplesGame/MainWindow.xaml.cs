@@ -1,22 +1,14 @@
-﻿using Microsoft.Kinect;
-using Microsoft.Kinect.Toolkit.Controls;
+using Microsoft.Kinect;
 using Microsoft.Kinect.Toolkit;
+using Microsoft.Kinect.Toolkit.Controls;
 using Microsoft.Samples.Kinect.WpfViewers;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
-using System.Globalization;
 
 namespace ApplesGame
 {
@@ -30,7 +22,7 @@ namespace ApplesGame
 
         private int treesCount = 3;
         private int applesOnTree = 10;
-        
+
         private KinectSensorChooser sensorChooser;
 
         public static readonly DependencyProperty KinectSensorManagerProperty =
@@ -38,22 +30,31 @@ namespace ApplesGame
                 "KinectSensorManager",
                 typeof(KinectSensorManager),
                 typeof(MainWindow),
-                new PropertyMetadata(null));
+                new PropertyMetadata(null));      
 
         public MainWindow()
         {
-            InitializeComponent();
-            Loaded += OnLoaded;
+            this.InitializeComponent();
+
+            // initialize the sensor chooser and UI
+            this.sensorChooser = new KinectSensorChooser();
+            this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
+            this.sensorChooserUI.KinectSensorChooser = this.sensorChooser;
+            this.sensorChooser.Start();
+
+            // Bind the sensor chooser's current sensor to the KinectRegion
+            var regionSensorBinding = new Binding("Kinect") { Source = this.sensorChooser };
+            BindingOperations.SetBinding(this.kinectRegion, KinectRegion.KinectSensorProperty, regionSensorBinding);
 
             //generating trees
             Canvas[] tree = new Canvas[treesCount];
-            Apple[,] myApple = new Apple[treesCount,applesOnTree];
+            Apple[,] myApple = new Apple[treesCount, applesOnTree];
             ImageBrush treeBg = new ImageBrush();
             treeBg.ImageSource = new BitmapImage(new Uri(@"../../../Graphics/ApplesGame/tree.png", UriKind.Relative));
             for (int i = 0; i < treesCount; i++)
             {
                 tree[i] = new Canvas();
-                tree[i].Width = (windowWidth-300)/treesCount;
+                tree[i].Width = (windowWidth - 300) / treesCount;
                 tree[i].Height = 1000;
                 Canvas.SetLeft(tree[i], (i * tree[i].Width + 50));
                 tree[i].Name = "tree" + i;
@@ -62,22 +63,53 @@ namespace ApplesGame
                 for (int j = 0; j < applesOnTree; j++)
                 {
                     //add apple (minX,maxX,minY,maxY)
-                    myApple[i,j] = new Apple(50, (int)(tree[i].Width)-80,
+                    myApple[i, j] = new Apple(50, (int)(tree[i].Width) - 80,
                         80, (int)(tree[i].Height) - 400);
                     tree[i].Children.Add(myApple[i, j].Figure);
+
+                    //add button
+                    var button = new KinectCircleButton
+                    {
+                        Height = myApple[i, j].Figure.Height,
+                        Width = myApple[i, j].Figure.Width,
+                        Margin = myApple[i, j].Figure.Margin,
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        Content = i,
+                        //Visibility=Visibility.Hidden
+                    };
+                    KinectRegion.SetIsGripTarget(button, true);
+                    KinectRegion.AddQueryInteractionStatusHandler(button, OnQuery);
+                    KinectRegion.AddHandPointerGripHandler(button, OnHandPointerGrip);
+                    
+
+                    //ButtonOnGrip(button, tree);
+                    //KinectRegion.; //+= (o, args) => ButtonOnGrip(button, tree);
+                    //button.OnHandPointerGrip += (o, args) => ButtonOnGrip(button, tree);
+                    //button.HandPointerGrip +=         
+                    //    (o, args) => ButtonOnGrip(button, tree);    
+                    tree[i].Children.Add(button);
+
                 }
             }
-            
+
+
         }
 
         public MainWindow(ApplesGameConfig config)
         {
             treesCount = config.TreesCount;
             applesOnTree = config.ApplesOnTreeCount;
-            this.sensorChooser = sensorChooser;
+            this.InitializeComponent();
 
-            InitializeComponent();
-            Loaded += OnLoaded;
+            // initialize the sensor chooser and UI
+            this.sensorChooser = new KinectSensorChooser();
+            this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
+            this.sensorChooserUI.KinectSensorChooser = this.sensorChooser;
+            this.sensorChooser.Start();
+
+            // Bind the sensor chooser's current sensor to the KinectRegion
+            var regionSensorBinding = new Binding("Kinect") { Source = this.sensorChooser };
+            BindingOperations.SetBinding(this.kinectRegion, KinectRegion.KinectSensorProperty, regionSensorBinding);
 
             //generating trees
             Canvas[] tree = new Canvas[treesCount];
@@ -104,32 +136,32 @@ namespace ApplesGame
 
         }
 
-        private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
-        {
-            this.sensorChooser = new KinectSensorChooser();
-            this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
-            this.sensorChooserUI.KinectSensorChooser = this.sensorChooser;
-            this.sensorChooser.Start();
-            var regionSensorBinding = new Binding("Kinect") { Source = this.sensorChooser };
-            BindingOperations.SetBinding(this.kinectRegion, Microsoft.Kinect.Toolkit.Controls.KinectRegion.KinectSensorProperty, regionSensorBinding);
-        }
+        //private void OnLoaded(object sender, RoutedEventArgs routedEventArgs)
+        //{
+        //    this.sensorChooser = new KinectSensorChooser();
+        //    this.sensorChooser.KinectChanged += SensorChooserOnKinectChanged;
+        //    this.sensorChooserUI.KinectSensorChooser = this.sensorChooser;
+        //    this.sensorChooser.Start();
+        //    var regionSensorBinding = new Binding("Kinect") { Source = this.sensorChooser };
+        //    BindingOperations.SetBinding(this.kinectRegion, Microsoft.Kinect.Toolkit.Controls.KinectRegion.KinectSensorProperty, regionSensorBinding);
+        //}
 
         #region Kinect discovery + setup
         private void SensorChooserOnKinectChanged(object sender, KinectChangedEventArgs args)
         {
-            bool error = false;
             if (args.OldSensor != null)
             {
                 try
                 {
-                    args.OldSensor.DepthStream.Range = Microsoft.Kinect.DepthRange.Default;
+                    args.OldSensor.DepthStream.Range = DepthRange.Default;
                     args.OldSensor.SkeletonStream.EnableTrackingInNearRange = false;
                     args.OldSensor.DepthStream.Disable();
                     args.OldSensor.SkeletonStream.Disable();
                 }
                 catch (InvalidOperationException)
                 {
-                    error = true;
+                    // KinectSensor might enter an invalid state while enabling/disabling streams or stream features.
+                    // E.g.: sensor might be abruptly unplugged.
                 }
             }
 
@@ -137,26 +169,25 @@ namespace ApplesGame
             {
                 try
                 {
-                    args.NewSensor.DepthStream.Enable(Microsoft.Kinect.DepthImageFormat.Resolution640x480Fps30);
+                    args.NewSensor.DepthStream.Enable(DepthImageFormat.Resolution640x480Fps30);
                     args.NewSensor.SkeletonStream.Enable();
 
                     try
                     {
-                        args.NewSensor.DepthStream.Range = Microsoft.Kinect.DepthRange.Near;
+                        args.NewSensor.DepthStream.Range = DepthRange.Near;
                         args.NewSensor.SkeletonStream.EnableTrackingInNearRange = true;
-                        args.NewSensor.SkeletonStream.TrackingMode = Microsoft.Kinect.SkeletonTrackingMode.Seated;
                     }
                     catch (InvalidOperationException)
                     {
                         // Non Kinect for Windows devices do not support Near mode, so reset back to default mode.
-                        args.NewSensor.DepthStream.Range = Microsoft.Kinect.DepthRange.Default;
+                        args.NewSensor.DepthStream.Range = DepthRange.Default;
                         args.NewSensor.SkeletonStream.EnableTrackingInNearRange = false;
-                        error = true;
                     }
                 }
                 catch (InvalidOperationException)
                 {
-                    error = true;
+                    // KinectSensor might enter an invalid state while enabling/disabling streams or stream features.
+                    // E.g.: sensor might be abruptly unplugged.
                 }
             }
         }
@@ -168,12 +199,12 @@ namespace ApplesGame
         }
         #endregion Kinect discovery + setup
 
-        #region Closing window 
+        #region Closing window
         private void WindowClosing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             this.sensorChooser.Stop();
         }
-        
+
         private void WindowClosed(object sender, EventArgs e)
         {
             KinectSensorManager.KinectSensor = null;
@@ -184,6 +215,77 @@ namespace ApplesGame
         {
             if (e.Key == System.Windows.Input.Key.Escape)
                 this.Close();
+        }
+
+        private void OnHandPointerGrip(object sender, HandPointerEventArgs handPointerEventArgs)
+        {
+            if (handPointerEventArgs.HandPointer.IsInGripInteraction == true) //&& handPointerEventArgs.HandPointer.GetIsOver(object)
+            {
+                KinectRegion.AddHandPointerGripReleaseHandler(kinectRegion, OnHandPointerGripRelase);
+                handPointerEventArgs.Handled = true;
+
+            }
+
+            //handPointerEventArgs.Handled = true;
+            //int TreeNumber = Convert.ToInt32(sender.Content);
+            
+            //tree[TreeNumber].Children.Remove(sender);
+        }
+
+        private void OnHandPointerGripRelase(object sender, HandPointerEventArgs handPointerEventArgs)
+        {
+            if (handPointerEventArgs.HandPointer.IsInGripInteraction == false)
+            {
+                var point = handPointerEventArgs.HandPointer.GetPosition(playfield);
+
+                int x = Convert.ToInt32(point.X);
+                int y = Convert.ToInt32(point.Y);
+
+                Apple FallingApple = new Apple(x, x, y, y);
+                playfield.Children.Add(FallingApple.Figure);
+                StartFalling(FallingApple);
+                handPointerEventArgs.Handled = true;
+            }
+        }
+
+
+        private void StartFalling (Apple apple)
+        {
+            
+        }
+
+        private void HandPointerGripEvent()
+        {
+            MessageBox.Show("sdfdsfg");
+        }
+
+        //Variable to track GripInterationStatus
+        bool isGripinInteraction = false;
+        private void OnQuery(object sender, QueryInteractionStatusEventArgs handPointerEventArgs)
+        {
+
+            //If a grip detected change the cursor image to grip
+            if (handPointerEventArgs.HandPointer.HandEventType == HandEventType.Grip)
+            {
+                isGripinInteraction = true;
+                handPointerEventArgs.IsInGripInteraction = true;
+                //OnHandPointerGrip(sender, handPointerEventArgs);
+            }
+
+           //If Grip Release detected change the cursor image to open
+            else if (handPointerEventArgs.HandPointer.HandEventType == HandEventType.GripRelease)
+            {
+                isGripinInteraction = false;
+                handPointerEventArgs.IsInGripInteraction = false;
+            }
+
+            //If no change in state do not change the cursor
+            else if (handPointerEventArgs.HandPointer.HandEventType == HandEventType.None)
+            {
+                handPointerEventArgs.IsInGripInteraction = isGripinInteraction;
+            }
+
+            handPointerEventArgs.Handled = true;
         }
     }
 }
